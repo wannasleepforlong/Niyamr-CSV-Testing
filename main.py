@@ -7,7 +7,7 @@ from io import StringIO
 import sys
 from prompt_corrector import correct_prompt
 
-st.title("NIYAMR CHAT APP (+preprompt)")
+st.title("NIYAMR CHAT APP")
 st.write("Upload your CSV & ask anything")
 
 openai_key = st.text_input(
