@@ -5,6 +5,7 @@ from langchain_openai import ChatOpenAI
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from io import StringIO
 import sys
+from prompt_corrector import correct_prompt
 
 st.title("NIYAMR CHAT APP")
 st.write("Upload your CSV & ask anything")
@@ -26,13 +27,25 @@ if openai_key:
         st.dataframe(df.head())
 
         question = st.text_area("Ask your question here")
+        
+        preprompt_on = st.toggle("Preprompt", value=False)
 
         if st.button("Submit") and question:
             with st.spinner("Processing your question..."):
                 try:
+                    current_question = question
+                    if preprompt_on:
+                        with st.status("Correcting prompt...", expanded=False) as status:
+                            table_head = df.head(5).to_string()
+                            current_question = correct_prompt(question, table_head, openai_key)
+                            st.write(f"**Original:** {question}")
+                            st.write(f"**Corrected:** {current_question}")
+                            status.update(label="Prompt corrected!", state="complete", expanded=False)
+                    
                     llm = ChatOpenAI(
                         model="gpt-4o-mini",
-                        temperature=0
+                        temperature=0,
+                        openai_api_key=openai_key
                     )
                     
                     agent = create_pandas_dataframe_agent(
@@ -46,7 +59,7 @@ if openai_key:
                     )
                     
                     # Get the full response with intermediate steps
-                    result = agent.invoke({"input": question})
+                    result = agent.invoke({"input": current_question})
                     
                     st.success("### Answer:")
                     st.write(result["output"])
